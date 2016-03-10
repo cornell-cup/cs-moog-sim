@@ -8,7 +8,8 @@ public class InfiniteStarfield : MonoBehaviour
 
     public int starsMax = 100;
     public float starDistance = 10;
-    public float starSize = 1.0f;
+    public float starSizeMin = 1.0f;
+    public float starSizeMax = 5.0f;
     private float starDistSqr;
 
     // Use this for initialization
@@ -20,36 +21,40 @@ public class InfiniteStarfield : MonoBehaviour
 
         for (int i = 0; i < starsMax; i++)
         {
-            points[i].position = randomPosition();
-            float rand = Random.value;
-            points[i].startSize = starSize * Mathf.Pow(0.1292f * rand, -0.602f);
-            points[i].startColor = randomColor(rand);
+            points[i].position = randomPosition(true);
+            points[i].startSize = Random.Range(starSizeMin,starSizeMax);
+            points[i].startColor = Color.white;
         }
     }
 
     // Update is called once per frame
     void Update()
     {
+        Color c = Color.white;
         for (int i = 0; i < starsMax; i++)
         {
-            if ((points[i].position - transform.position).sqrMagnitude > starDistSqr*points[i].startSize/starSize)
+            float dist = (points[i].position - transform.position).sqrMagnitude;
+            if (dist > starDistSqr)
             {
-                points[i].position = randomPosition();
+                points[i].position = randomPosition(false);
+            }
+            else
+            {
+                c.a = 1.0f - Mathf.Sqrt(dist / starDistSqr);
+                points[i].color = c;
             }
         }
         ps.SetParticles(points, points.Length);
     }
 
-    Vector3 randomPosition()
+    Vector3 randomPosition(bool init)
     {
-        return Random.insideUnitSphere.normalized * starDistance + transform.position;
+        Vector3 rand = init ? Random.insideUnitSphere : Random.onUnitSphere;
+        return rand.normalized * starDistance + transform.position;
     }
 
     Color randomColor(float rand)
     {
-        //Using stellar size and apparent color distribution from
-        //https://en.wikipedia.org/wiki/Stellar_classification
-
         if (rand < 0.0013)
         {
             return new Color(0.67f, 0.75f, 1);

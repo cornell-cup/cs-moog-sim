@@ -9,10 +9,10 @@ public class Movement : MonoBehaviour
     //private float[] velocity = { 0, 0, 0, 0, 0, 0 };
     //private float[] acceleration = { 0, 0, 0, 0, 0, 0 };
     private const float MAX_ANG_VEL = 30;
-    private const float MIN_ANGLE = 200;
-    private const float MAX_ANGLE = 160;
+    private const float MIN_ANGLE = 0;//200;
+    private const float MAX_ANGLE = 360;//160;
     private Vector3 vel;
-    private float smooth = 0.2f;
+    //private float smooth = 0.2f;
     private enum Motion { Angular, Linear };
     private string[][] controls = { new string[] { "Pitch", "Yaw", "Roll" }, new string[] { "Sway", "Heave", "Surge" } };
     //private float[][] velocityLimits = { new float[] { 40, 30, 30 }, new float[] { 0.5f, 0.3f, 0.5f } };
