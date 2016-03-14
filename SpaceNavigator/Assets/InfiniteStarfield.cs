@@ -50,34 +50,6 @@ public class InfiniteStarfield : MonoBehaviour
     Vector3 randomPosition(bool init)
     {
         Vector3 rand = init ? Random.insideUnitSphere : Random.onUnitSphere;
-        return rand.normalized * starDistance + transform.position;
-    }
-
-    Color randomColor(float rand)
-    {
-        if (rand < 0.0013)
-        {
-            return new Color(0.67f, 0.75f, 1);
-        }
-        else if (rand < 0.0073)
-        {
-            return new Color(0.8f, 0.85f, 1);
-        }
-        else if (rand < 0.0373)
-        {
-            return new Color(1, 1, 1);
-        }
-        else if (rand < 0.1133)
-        {
-            return new Color(1, 0.95f, 0.92f);
-        }
-        else if (rand < 0.2343)
-        {
-            return new Color(1, 0.82f, 0.63f);
-        }
-        else
-        {
-            return new Color(1, 0.8f, 0.44f);
-        }
+        return rand * starDistance + transform.position;
     }
 }
