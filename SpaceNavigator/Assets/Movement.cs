@@ -116,7 +116,7 @@ public class Movement : MonoBehaviour
         v *= 0.1f; //scale sim to MOOG velocity (0.1x)
         v = new Vector3(v.x, -v.y, v.z);
         Vector3 a = localize(rb.angularVelocity);
-        a *= 180 / Mathf.PI; //convert rad/sec to deg/sec
+        //a *= 180 / Mathf.PI; //convert rad/sec to deg/sec
         a = new Vector3(-a.x, a.y, -a.z);
 
         linAcc = v - linVel;
@@ -144,9 +144,11 @@ public class Movement : MonoBehaviour
         string msg = "";
         UDPSend.newPacket();
         msg += string.Format("{0,8:F6}", UDPSend.addFloat(Time.time));
-        msg += string.Format(" {0,8:F6}", UDPSend.addFloat(rb.velocity.magnitude));
+        msg += string.Format(" {0,8:F6}", UDPSend.addFloat(linVel.z));
 
-        foreach (Vector3 v in new Vector3[] { angVel, linAcc, angAcc, transform.rotation.eulerAngles })
+        Vector3 rotation = transform.rotation.eulerAngles * Mathf.PI / 180;
+
+        foreach (Vector3 v in new Vector3[] { angVel, linAcc, angAcc, rotation })
         {
             msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.x));
             msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.y));
@@ -158,7 +160,7 @@ public class Movement : MonoBehaviour
 
         //TODO more elegant UI updating
         label = "position:\t" + transform.position.ToString();
-        label += "\nrotation:\t" + transform.rotation.eulerAngles.ToString();
+        label += "\nrotation:\t" + rotation.ToString();
         label += "\nvelocity:\t" + linVel.ToString();
         label += "\nangular:\t" + angVel.ToString();
     }
