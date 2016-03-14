@@ -159,7 +159,7 @@ public class Movement : MonoBehaviour
         UDPSend.sendPacket();
 
         //TODO more elegant UI updating
-        label = "position:\t" + transform.position.ToString();
+        label = "position:\t" + (transform.position*0.1f).ToString();
         label += "\nrotation:\t" + rotation.ToString();
         label += "\nvelocity:\t" + linVel.ToString();
         label += "\nangular:\t" + angVel.ToString();
