@@ -141,11 +141,11 @@ public class Movement : MonoBehaviour
 
     private void sendData()
     {
-        string msg = string.Format("{0,8:F6}",Time.time);
+        string msg = string.Format("{0,8:F6} {1,8:F6}",Time.time, rb.velocity.magnitude);
 
-        foreach (Vector3 v in new Vector3[] { angVel, linVel, angAcc, linAcc })
+        foreach (Vector3 v in new Vector3[] { angVel, linAcc, angAcc, transform.rotation.eulerAngles })
         {
-            msg += string.Format(" {0,8:F6} {0,8:F6} {0,8:F6}", v.x, v.y, v.z);
+            msg += string.Format(" {0,8:F6} {1,8:F6} {2,8:F6}", v.x, v.y, v.z);
         }
 
         Debug.Log(msg);
