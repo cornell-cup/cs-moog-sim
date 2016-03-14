@@ -71,23 +71,16 @@ public class Movement : MonoBehaviour
     {
         Vector3 r = transform.rotation.eulerAngles;
         Vector3 rv = rb.angularVelocity;
+        Vector3 lerp = Vector3.Slerp(rv, new Vector3(), 0.1f);
 
-        rv.x = lerpAngVel(r.x, rv.x);
-        rv.y = lerpAngVel(r.y, rv.y);
-        rv.z = lerpAngVel(r.z, rv.z);
-
-        if (!rv.Equals(rb.angularVelocity))
-            rb.angularVelocity = rv;
+        if (outOfBounds(r.x,rv.x) || outOfBounds(r.y,rv.y) || outOfBounds(r.z,rv.z))
+            rb.angularVelocity = lerp;
     }
 
-    // if ang is outside bounds, lerp vel towards zero
-    // else return vel
-    private float lerpAngVel(float ang, float vel)
+    private bool outOfBounds(float ang, float vel)
     {
-        if ((ang > MAX_ANGLE && ang < 180 && vel > 0.01) ||
-            (ang < MIN_ANGLE && ang > 180 && vel < -0.01))
-            vel = Mathf.Lerp(vel, 0, 0.1f);
-        return vel;
+        return (ang > MAX_ANGLE && ang < 180 && vel > 0.01) ||
+             (ang < MIN_ANGLE && ang > 180 && vel < -0.01);
     }
 
     private void limitVelocity(Motion type, Vector3 limit)
@@ -144,7 +137,7 @@ public class Movement : MonoBehaviour
         string msg = "";
         UDPSend.newPacket();
         msg += string.Format("{0,8:F6}", UDPSend.addFloat(Time.time));
-        msg += string.Format(" {0,8:F6}", UDPSend.addFloat(linVel.z));
+        msg += string.Format(" {0,8:F6}", UDPSend.addFloat(linVel.magnitude));
 
         Vector3 rotation = transform.rotation.eulerAngles * Mathf.PI / 180;
 
