@@ -141,15 +141,20 @@ public class Movement : MonoBehaviour
 
     private void sendData()
     {
-        string msg = string.Format("{0,8:F6} {1,8:F6}",Time.time, rb.velocity.magnitude);
+        string msg = "";
+        UDPSend.newPacket();
+        msg += string.Format("{0,8:F6}", UDPSend.addFloat(Time.time));
+        msg += string.Format(" {0,8:F6}", UDPSend.addFloat(rb.velocity.magnitude));
 
         foreach (Vector3 v in new Vector3[] { angVel, linAcc, angAcc, transform.rotation.eulerAngles })
         {
-            msg += string.Format(" {0,8:F6} {1,8:F6} {2,8:F6}", v.x, v.y, v.z);
+            msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.x));
+            msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.y));
+            msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.z));
         }
 
-        Debug.Log(msg);
-        udp.sendString(msg);
+        udp.logPacket(msg);
+        UDPSend.sendPacket();
 
         //TODO more elegant UI updating
         label = "position:\t" + transform.position.ToString();
