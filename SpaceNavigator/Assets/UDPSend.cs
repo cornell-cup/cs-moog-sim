@@ -26,11 +26,14 @@ public class UDPSend : MonoBehaviour
     //send boolean
     public bool sent = false;
 
+    public string log_filename = "log";
+
     // Use this for initialization
     void Start()
     {
-        Screen.sleepTimeout = SleepTimeout.NeverSleep;
         print("Initiating start sequence");
+        System.IO.StreamWriter clearLog = new System.IO.StreamWriter(log_filename + ".txt", false);
+        clearLog.Dispose();
         init();
     }
 
@@ -70,13 +73,17 @@ public class UDPSend : MonoBehaviour
         {
             if (sent)
             {
-                byte[] data = Encoding.UTF8.GetBytes(message);
-                client.Send(data, data.Length, remoteEndPoint);
+                //byte[] data = Encoding.UTF8.GetBytes(message);
+                using (System.IO.StreamWriter sw = new System.IO.StreamWriter(log_filename + ".txt", true))
+                {
+                    sw.WriteLine(message);
+                }
+                //client.Send(data, data.Length, remoteEndPoint);
             }
         }
-        catch
+        catch(Exception e)
         {
-            print("Error");
+            print(e.Message);
         }
     }
 }
