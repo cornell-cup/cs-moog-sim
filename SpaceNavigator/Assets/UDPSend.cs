@@ -44,7 +44,7 @@ public class UDPSend : MonoBehaviour
         packet = null;
     }
 
-    public static void addFloat(float f){
+    public static float addFloat(float f){
         byte[] newFloatByte = BitConverter.GetBytes(f);
         if(packet != null){
             List<byte> oldlist = new List<byte>(packet);
@@ -55,6 +55,7 @@ public class UDPSend : MonoBehaviour
         else{
             packet = newFloatByte;
         }
+        return f;
     }
 
     public static void sendPacket(){
