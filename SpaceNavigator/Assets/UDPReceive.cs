@@ -67,10 +67,10 @@ public class UDPReceive : MonoBehaviour
                 string[] message = text.Split(',');
                 Vector3 result = new Vector3(float.Parse(message[0]), float.Parse(message[1]), float.Parse(message[2]));
 
+                //cancel out rotations from the camera
+                transform.Rotate(-result);
+
                 print(">> " + result);
-
-                //TODO cancel out rotations from the camera
-
                 lastReceivedUDPPacket = result;
             }
             catch (Exception err)
