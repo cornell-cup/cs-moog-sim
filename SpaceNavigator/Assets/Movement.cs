@@ -118,10 +118,10 @@ public class Movement : MonoBehaviour
     // updates current velocities and accelerations vars and on GUI
     private void updateVelAcc()
     {
-        Vector3 v = localize(rb.velocity);
+        Vector3 v = localize(rb.velocity); // replace with rb.GetRelativePointVelocity(seat position from center) 
         v *= 0.1f; //scale to MOOG velocity (0.1x)
         Vector3 a = localize(rb.angularVelocity);
-        
+
         // convert from Unity to MOOG orientations
         v = new Vector3(v.x, -v.y, v.z);
         a = new Vector3(-a.x, a.y, -a.z);

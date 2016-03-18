@@ -34,8 +34,6 @@ public class UDPReceive : MonoBehaviour
     // start from unity3d
     public void Start()
     {
-        print("UDPSend.init()");
-
         // status
         print("Listening on 127.0.0.1 : " + INIT_PORT + " User Data");
         print("Listening on 127.0.0.1 : " + SYNC_PORT + "Sync Data");
@@ -70,6 +68,8 @@ public class UDPReceive : MonoBehaviour
                 Vector3 result = new Vector3(float.Parse(message[0]), float.Parse(message[1]), float.Parse(message[2]));
 
                 print(">> " + result);
+
+                //TODO cancel out rotations from the camera
 
                 lastReceivedUDPPacket = result;
             }
