@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 
 public class Movement : MonoBehaviour
@@ -21,12 +22,13 @@ public class Movement : MonoBehaviour
     private Vector3 MAX_LIN_VEL = new Vector3(5, 3, 5);
 
     //min/max angle of the ship
-    private const float MIN_ANGLE = 200; // = -160
-    private const float MAX_ANGLE = 160;
+    private const float MIN_ANGLE = 340;
+    private const float MAX_ANGLE = 20;
 
     private string label; //GUI label for position, rotation & ang/lin velocity
     private Rigidbody rb; //applies forces, returns velocities
     private UDPSend udp; //communication channel
+    public Text hud; //head-up display of motion info
 
     //current rotation, velocities & accelerations of ship
     private Vector3 linVel = new Vector3();
@@ -118,7 +120,8 @@ public class Movement : MonoBehaviour
     // updates current velocities and accelerations vars and on GUI
     private void updateVelAcc()
     {
-        Vector3 v = localize(rb.velocity); // replace with rb.GetRelativePointVelocity(seat position from center) 
+        // TODO replace with rb.GetRelativePointVelocity(seat position from center)
+        Vector3 v = localize(rb.velocity);
         v *= 0.1f; //scale to MOOG velocity (0.1x)
         Vector3 a = localize(rb.angularVelocity);
 
@@ -126,18 +129,17 @@ public class Movement : MonoBehaviour
         v = new Vector3(v.x, -v.y, v.z);
         a = new Vector3(-a.x, a.y, -a.z);
 
+        rotation = transform.rotation.eulerAngles * Mathf.PI / 180;
         linAcc = v - linVel;
         angAcc = a - angVel;
         linVel = v;
         angVel = a;
 
-        rotation = transform.rotation.eulerAngles * Mathf.PI / 180;
-
-        //TODO more elegant UI updating
-        label = "position:\t" + (transform.position * 0.1f).ToString();
-        label += "\nrotation:\t" + rotation.ToString();
-        label += "\nvelocity:\t" + linVel.ToString();
-        label += "\nangular:\t" + angVel.ToString();
+        //update gui 
+        hud.text = "pos: " + fixLen(transform.position * 0.1f);
+        hud.text += "\trot: " + fixLen(degModAngle(rotation));
+        hud.text += "\nvel: " + fixLen(linVel);
+        hud.text += "\tvel: " + fixLen(degModAngle(angVel));
     }
 
     // converts vector from global to local axes
@@ -155,6 +157,22 @@ public class Movement : MonoBehaviour
         return Vector3.Dot(Vector3.Project(v, n), n) / Vector3.Dot(n, n);
     }
 
+    // converts vector from radians to degrees and from [0,360) to [-180,180)
+    private Vector3 degModAngle(Vector3 v)
+    {
+        v *= 180 / Mathf.PI;
+        v.x = v.x < 180 ? v.x : v.x - 360;
+        v.y = v.y < 180 ? v.y : v.y - 360;
+        v.z = v.z < 180 ? v.z : v.z - 360;
+        return v;
+    }
+
+    // outputs a fixed length Vector3 toString
+    private string fixLen(Vector3 v)
+    {
+        return string.Format("{0,6:F2} {1,6:F2} {2,6:F2}", v.x, v.y, v.z);
+    }
+
     // log and send ship motion info to comm
     private void sendData()
     {
@@ -162,7 +180,7 @@ public class Movement : MonoBehaviour
         UDPSend.newPacket();
         msg += string.Format("{0,8:F6}", UDPSend.addFloat(Time.time));
         msg += string.Format(" {0,8:F6}", UDPSend.addFloat(linVel.magnitude));
-        
+
         foreach (Vector3 v in new Vector3[] { angVel, linAcc, angAcc, rotation })
         {
             msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.x));
@@ -172,11 +190,5 @@ public class Movement : MonoBehaviour
 
         udp.logPacket(msg);
         UDPSend.sendPacket();
-    }
-
-    void OnGUI()
-    {
-        GUI.Label(new Rect(30, 0, Screen.width, 100), label);
-        GUI.skin.label.alignment = TextAnchor.MiddleLeft;
     }
 }
