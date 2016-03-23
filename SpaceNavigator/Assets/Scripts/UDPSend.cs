@@ -20,7 +20,7 @@ public class UDPSend : MonoBehaviour
 
     private static byte[] packet;
 
-    public string log_filename = "log";
+    private string log_filename = "log_"+DateTime.Now.ToFileTime();
 
     // Use this for initialization
     void Start()
@@ -33,7 +33,7 @@ public class UDPSend : MonoBehaviour
     public void init()
     {
         //IP
-        IP = "127.0.0.1"; //193.168.1.2
+        IP = "192.168.4.164";
         port = 993;
 
         remoteEndPoint = new IPEndPoint(IPAddress.Parse(IP), port);

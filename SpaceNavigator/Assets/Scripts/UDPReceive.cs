@@ -101,7 +101,7 @@ public class UDPReceive : MonoBehaviour
             {
                 print("Listening");
                 data = client.Receive(ref unityEp);
-                string text = Encoding.UTF8.GetString(data);
+                //string text = Encoding.UTF8.GetString(data);
             }
             catch (Exception err)
             {

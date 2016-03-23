@@ -7,7 +7,7 @@ public class Movement : MonoBehaviour
 
     //torque applied from controls in rad/sec^2
     public float TURN_DELTA = 0.1f;
-    //force applied from controls in 0.1m/sec^2
+    //force applied from controls in 1 m/sec^2
     public float SPEED_DELTA = 5;
 
     //the two types of motion
@@ -18,12 +18,12 @@ public class Movement : MonoBehaviour
         new string[] { "Sway", "Heave", "Surge" } };
 
     //maximum velocity along local axes
-    private Vector3 MAX_ANG_VEL = new Vector3(Mathf.PI / 6, 2 * Mathf.PI / 9, Mathf.PI / 6);
-    private Vector3 MAX_LIN_VEL = new Vector3(5, 3, 5);
+    //private Vector3 MAX_ANG_VEL = new Vector3(Mathf.PI / 3, 4 * Mathf.PI / 9, Mathf.PI / 3);
+    //private Vector3 MAX_LIN_VEL = new Vector3(10, 6, 10);
 
     //min/max angle of the ship
-    private const float MIN_ANGLE = 340;
-    private const float MAX_ANGLE = 20;
+    private const float MIN_ANGLE = 0;
+    private const float MAX_ANGLE = 360;
 
     private string label; //GUI label for position, rotation & ang/lin velocity
     private Rigidbody rb; //applies forces, returns velocities
@@ -52,8 +52,8 @@ public class Movement : MonoBehaviour
     {
         applyForces();
         limitRotation();
-        limitVelocity(Motion.Angular, MAX_ANG_VEL);
-        limitVelocity(Motion.Linear, MAX_LIN_VEL);
+        //limitVelocity(Motion.Angular, MAX_ANG_VEL);
+        //limitVelocity(Motion.Linear, MAX_LIN_VEL);
         updateVelAcc();
         sendData();
     }
@@ -122,7 +122,6 @@ public class Movement : MonoBehaviour
     {
         // TODO replace with rb.GetRelativePointVelocity(seat position from center)
         Vector3 v = localize(rb.velocity);
-        v *= 0.1f; //scale to MOOG velocity (0.1x)
         Vector3 a = localize(rb.angularVelocity);
 
         // convert from Unity to MOOG orientations
@@ -136,7 +135,7 @@ public class Movement : MonoBehaviour
         angVel = a;
 
         //update gui 
-        hud.text = "pos: " + fixLen(transform.position * 0.1f);
+        hud.text = "pos: " + fixLen(transform.position);
         hud.text += "\trot: " + fixLen(degModAngle(rotation));
         hud.text += "\nvel: " + fixLen(linVel);
         hud.text += "\tvel: " + fixLen(degModAngle(angVel));
@@ -181,7 +180,7 @@ public class Movement : MonoBehaviour
         msg += string.Format("{0,8:F6}", UDPSend.addFloat(Time.time));
         msg += string.Format(" {0,8:F6}", UDPSend.addFloat(linVel.magnitude));
 
-        foreach (Vector3 v in new Vector3[] { angVel, linAcc, angAcc, rotation })
+        foreach (Vector3 v in new Vector3[] { angVel, linAcc, angAcc, /*rotation*/new Vector3() })
         {
             msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.x));
             msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.y));
