@@ -15,15 +15,15 @@ public class UDPSend : MonoBehaviour
     private int port;
 
     //connection stuff
-    private static IPEndPoint remoteEndPoint;
-    private static UdpClient client;
+    private static IPEndPoint computerEP;
+    private static UdpClient unity_sender;
 
     private static byte[] packet;
 
     private string log_filename = "log_"+DateTime.Now.ToFileTime();
 
     // Use this for initialization
-    void Start()
+    public void Start()
     {
         System.IO.StreamWriter clearLog = new System.IO.StreamWriter(log_filename + ".txt", false);
         clearLog.Dispose();
@@ -33,11 +33,11 @@ public class UDPSend : MonoBehaviour
     public void init()
     {
         //IP
-        IP = "192.168.4.164";
+        IP = "127.0.0.1"; // 192.168.4.164
         port = 993;
 
-        remoteEndPoint = new IPEndPoint(IPAddress.Parse(IP), port);
-        client = new UdpClient();
+        computerEP = new IPEndPoint(IPAddress.Parse(IP), port);
+        unity_sender = new UdpClient();
     }
 
     public static void newPacket(){
@@ -59,7 +59,7 @@ public class UDPSend : MonoBehaviour
     }
 
     public static void sendPacket(){
-        client.Send(packet, packet.Length, remoteEndPoint);
+        unity_sender.Send(packet, packet.Length, computerEP);
     }
     
     public void logPacket(string message)

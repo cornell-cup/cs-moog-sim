@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System;
 using System.Collections;
 
 public class Movement : MonoBehaviour
@@ -56,6 +57,7 @@ public class Movement : MonoBehaviour
         //limitVelocity(Motion.Linear, MAX_LIN_VEL);
         updateVelAcc();
         sendData();
+        receiveData();
     }
 
     // applies forces from controls to ship
@@ -189,5 +191,18 @@ public class Movement : MonoBehaviour
 
         udp.logPacket(msg);
         UDPSend.sendPacket();
+    }
+
+    private void receiveData()
+    {
+        byte[] data = UDPReceive.getMOOGData();
+
+        float time = BitConverter.ToSingle(data, 0);
+        float roll = BitConverter.ToSingle(data, 4);
+        float pitch = BitConverter.ToSingle(data, 8);
+        float yaw = BitConverter.ToSingle(data, 12);
+
+        string msg = "" + time + " " + roll + " " + pitch + " " + yaw;
+        if(time > 0) Debug.Log(msg);
     }
 }
