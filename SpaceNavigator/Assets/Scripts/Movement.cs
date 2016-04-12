@@ -22,8 +22,8 @@ public class Movement : MonoBehaviour
     //private Vector3 MAX_LIN_VEL = new Vector3(10, 6, 10);
 
     //min/max angle of the ship
-    private const float MIN_ANGLE = 0;
-    private const float MAX_ANGLE = 360;
+    private const float MIN_ANGLE = 200;
+    private const float MAX_ANGLE = 160;
 
     private string label; //GUI label for position, rotation & ang/lin velocity
     private Rigidbody rb; //applies forces, returns velocities
@@ -51,9 +51,6 @@ public class Movement : MonoBehaviour
     void Update()
     {
         applyForces();
-        limitRotation();
-        //limitVelocity(Motion.Angular, MAX_ANG_VEL);
-        //limitVelocity(Motion.Linear, MAX_LIN_VEL);
         updateVelAcc();
         sendData();
     }
@@ -61,13 +58,21 @@ public class Movement : MonoBehaviour
     // applies forces from controls to ship
     private void applyForces()
     {
-        Vector3 x = transform.right.normalized;
-        Vector3 y = transform.up.normalized;
-        Vector3 z = transform.forward.normalized;
-        Vector3[] axes = { x, y, z };
-
-        rb.AddTorque(move(axes, Motion.Angular) * TURN_DELTA);
-        rb.AddForce(move(axes, Motion.Linear) * SPEED_DELTA);
+        // joystick button A or keyboard spacebar to brake
+        if (Input.GetKey(KeyCode.Joystick1Button0) || Input.GetKey(KeyCode.Space))
+        {
+            rb.AddTorque(-rb.angularVelocity * TURN_DELTA);
+            rb.AddForce(-rb.velocity * SPEED_DELTA);
+        }
+        else
+        {
+            Vector3 x = transform.right.normalized;
+            Vector3 y = transform.up.normalized;
+            Vector3 z = transform.forward.normalized;
+            Vector3[] axes = { x, y, z };
+            rb.AddTorque(move(axes, Motion.Angular) * TURN_DELTA);
+            rb.AddForce(move(axes, Motion.Linear) * SPEED_DELTA);
+        }
     }
 
     // translates force vectors (from controls) along local axes to global force vectors
@@ -79,42 +84,6 @@ public class Movement : MonoBehaviour
             force += vectors[i] * Input.GetAxis(controls[(int)m][i]);
         }
         return force;
-    }
-
-    // brings ship to a stop if it has breached angular bounds along any axis
-    private void limitRotation()
-    {
-        Vector3 r = transform.rotation.eulerAngles;
-        Vector3 rv = rb.angularVelocity;
-        Vector3 lerp = Vector3.Slerp(rv, new Vector3(), 0.05f);
-
-        if (outOfBounds(r.x, rv.x) || outOfBounds(r.y, rv.y) || outOfBounds(r.z, rv.z))
-            rb.angularVelocity = lerp;
-    }
-
-    // returns whether ang is out of bounds and vel is moving further away from bounds
-    private bool outOfBounds(float ang, float vel)
-    {
-        return (ang > MAX_ANGLE && ang < 180 && vel > 0.01) ||
-             (ang < MIN_ANGLE && ang > 180 && vel < -0.01);
-    }
-
-    // clamps velocity of type m to limit
-    private void limitVelocity(Motion m, Vector3 limit)
-    {
-        Vector3 v = (m == Motion.Angular) ? rb.angularVelocity : rb.velocity;
-        Vector3 limV = v;
-        limV.x = Mathf.Clamp(v.x, -limit.x, limit.x);
-        limV.y = Mathf.Clamp(v.y, -limit.y, limit.y);
-        limV.z = Mathf.Clamp(v.z, -limit.z, limit.z);
-
-        if (!v.Equals(limV))
-        {
-            if (m == Motion.Angular)
-                rb.angularVelocity = limV;
-            else
-                rb.velocity = limV;
-        }
     }
 
     // updates current velocities and accelerations vars and on GUI
@@ -180,7 +149,7 @@ public class Movement : MonoBehaviour
         msg += string.Format("{0,8:F6}", UDPSend.addFloat(Time.time));
         msg += string.Format(" {0,8:F6}", UDPSend.addFloat(linVel.magnitude));
 
-        foreach (Vector3 v in new Vector3[] { angVel, linAcc, angAcc, /*rotation*/new Vector3() })
+        foreach (Vector3 v in new Vector3[] { angVel, linAcc, angAcc, /*rotation*/Vector3.zero })
         {
             msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.x));
             msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.y));
