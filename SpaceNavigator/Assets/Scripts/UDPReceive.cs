@@ -46,6 +46,14 @@ public class UDPReceive : MonoBehaviour
             try
             {
                 packet = unity_receiver.Receive(ref unityEP);
+                float time = BitConverter.ToSingle(packet, 0);
+                Vector3 orientation = new Vector3(
+                    BitConverter.ToSingle(packet, 4),
+                    BitConverter.ToSingle(packet, 8), 
+                    BitConverter.ToSingle(packet, 12));
+                Debug.Log(time + " " + orientation);
+                //cancel out rotations from the camera
+                transform.Rotate(-orientation);
             }
             catch(Exception err)
             {
