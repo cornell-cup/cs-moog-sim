@@ -10,28 +10,38 @@ using System.Threading;
 public class UDPReceive : MonoBehaviour
 {
     // Address
-    private string IP;
+    private string localIP;
+    private string remoteIP;
     private int port;
 
     // Connection
     private static IPEndPoint unityEP;
+    private static IPEndPoint computer_sender_EP;
     private static UdpClient unity_receiver;
 
     private static byte[] packet;
+
+    private static bool abortThread;
 
     // receiving Thread
     private Thread receiveThread;
 
     public void Start()
     {
-        IP = "127.0.0.1";
+        localIP = "127.0.0.1";
+        remoteIP = "127.0.0.1";
         port = 994;
 
-        unityEP = new IPEndPoint(IPAddress.Parse(IP), port);
+        unityEP = new IPEndPoint(IPAddress.Parse(localIP), port);
+        computer_sender_EP = new IPEndPoint(IPAddress.Parse(remoteIP), port);
+
         unity_receiver = new UdpClient();
         unity_receiver.Client.Bind(unityEP);
+        unity_receiver.Client.ReceiveTimeout = 1000;
 
         packet = new byte[16];
+
+        abortThread = false;
 
         receiveThread = new Thread(new ThreadStart(ReceiveData));
         receiveThread.IsBackground = true;
@@ -41,7 +51,7 @@ public class UDPReceive : MonoBehaviour
     // receive thread
     private void ReceiveData()
     {
-        while(true)
+        while(!abortThread)
         {
             try
             {
@@ -57,7 +67,7 @@ public class UDPReceive : MonoBehaviour
             }
             catch(Exception err)
             {
-                print(err.ToString());
+                //print(err.ToString());
             }            
         }
     }
@@ -69,10 +79,6 @@ public class UDPReceive : MonoBehaviour
 
     public void OnApplicationQuit()
     {
-        if (receiveThread.IsAlive)
-        {
-            receiveThread.Abort();
-        }
-        unity_receiver.Close();
+        abortThread = true;
     }
 }
