@@ -38,6 +38,7 @@ public class UDPSend : MonoBehaviour
 
         computerEP = new IPEndPoint(IPAddress.Parse(IP), port);
         unity_sender = new UdpClient();
+        unity_sender.Connect(computerEP);
     }
 
     public static void newPacket(){
@@ -59,7 +60,7 @@ public class UDPSend : MonoBehaviour
     }
 
     public static void sendPacket(){
-        unity_sender.Send(packet, packet.Length, computerEP);
+        unity_sender.Send(packet, packet.Length);
     }
     
     public void logPacket(string message)
