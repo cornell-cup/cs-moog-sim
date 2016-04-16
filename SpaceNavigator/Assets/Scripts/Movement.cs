@@ -19,8 +19,8 @@ public class Movement : MonoBehaviour
         new string[] { "Sway", "Heave", "Surge" } };
 
     //maximum velocity along local axes
-    //private Vector3 MAX_ANG_VEL = new Vector3(Mathf.PI / 3, 4 * Mathf.PI / 9, Mathf.PI / 3);
-    //private Vector3 MAX_LIN_VEL = new Vector3(10, 6, 10);
+    private Vector3 MAX_ANG_VEL = new Vector3(Mathf.PI / 3, 4 * Mathf.PI / 9, Mathf.PI / 3);
+    private Vector3 MAX_LIN_VEL = new Vector3(10, 6, 10);
 
     //min/max angle of the ship
     private const float MIN_ANGLE = 200;
@@ -52,6 +52,8 @@ public class Movement : MonoBehaviour
     void Update()
     {
         applyForces();
+        limitVelocity(Motion.Angular, MAX_ANG_VEL);
+        limitVelocity(Motion.Linear, MAX_LIN_VEL);
         updateVelAcc();
         sendData();
         receiveData();
@@ -61,12 +63,7 @@ public class Movement : MonoBehaviour
     private void applyForces()
     {
         // joystick button A or keyboard spacebar to brake
-        if (Input.GetKey(KeyCode.Joystick1Button0) || Input.GetKey(KeyCode.Space))
-        {
-            rb.AddTorque(-rb.angularVelocity * TURN_DELTA);
-            rb.AddForce(-rb.velocity * SPEED_DELTA);
-        }
-        else
+        if (Input.GetKey(KeyCode.Joystick1Button0))
         {
             Vector3 x = transform.right.normalized;
             Vector3 y = transform.up.normalized;
@@ -74,8 +71,31 @@ public class Movement : MonoBehaviour
             Vector3[] axes = { x, y, z };
             rb.AddTorque(move(axes, Motion.Angular) * TURN_DELTA);
             rb.AddForce(move(axes, Motion.Linear) * SPEED_DELTA);
+        } else
+        {
+            rb.AddTorque(-rb.angularVelocity * TURN_DELTA);
+            rb.AddForce(-rb.velocity * SPEED_DELTA);
         }
     }
+
+    // clamps velocity of type m to limit		
+    private void limitVelocity(Motion m, Vector3 limit)
+    {
+        Vector3 v = (m == Motion.Angular) ? rb.angularVelocity : rb.velocity;
+        Vector3 limV = v;
+        limV.x = Mathf.Clamp(v.x, -limit.x, limit.x);
+        limV.y = Mathf.Clamp(v.y, -limit.y, limit.y);
+        limV.z = Mathf.Clamp(v.z, -limit.z, limit.z);
+
+        if (!v.Equals(limV))
+        {
+            if (m == Motion.Angular)
+                rb.angularVelocity = limV;
+            else
+                rb.velocity = limV;
+        }
+    }
+
 
     // translates force vectors (from controls) along local axes to global force vectors
     Vector3 move(Vector3[] vectors, Motion m)
@@ -149,9 +169,9 @@ public class Movement : MonoBehaviour
         string msg = "";
         UDPSend.newPacket();
         msg += string.Format("{0,8:F6}", UDPSend.addFloat(Time.time));
-        msg += string.Format(" {0,8:F6}", UDPSend.addFloat(linVel.magnitude));
+        msg += string.Format(" {0,8:F6}", UDPSend.addFloat(10 * linVel.magnitude));
 
-        foreach (Vector3 v in new Vector3[] { angVel, linAcc, angAcc, /*rotation*/Vector3.zero })
+        foreach (Vector3 v in new Vector3[] { 10 * angVel, 10 * linAcc, 10 * angAcc, transform.rotation.eulerAngles })
         {
             msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.x));
             msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.y));
@@ -172,6 +192,6 @@ public class Movement : MonoBehaviour
         float yaw = BitConverter.ToSingle(data, 12);
 
         string msg = "" + time + " " + roll + " " + pitch + " " + yaw;
-        if(time > 0) Debug.Log(msg);
+        if (time > 0) Debug.Log(msg);
     }
 }

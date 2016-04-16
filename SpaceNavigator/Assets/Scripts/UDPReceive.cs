@@ -28,8 +28,8 @@ public class UDPReceive : MonoBehaviour
 
     public void Start()
     {
-        localIP = "127.0.0.1";
-        remoteIP = "127.0.0.1";
+        localIP = "192.168.4.23";
+        remoteIP = "192.168.4.164";
         port = 994;
 
         unityEP = new IPEndPoint(IPAddress.Parse(localIP), port);
@@ -63,7 +63,8 @@ public class UDPReceive : MonoBehaviour
                     BitConverter.ToSingle(packet, 12));
                 Debug.Log(time + " " + orientation);
                 //cancel out rotations from the camera
-                transform.Rotate(-orientation);
+                //transform.Rotate(-orientation);
+                transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles-orientation);
             }
             catch(Exception err)
             {

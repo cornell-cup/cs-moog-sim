@@ -33,7 +33,7 @@ public class UDPSend : MonoBehaviour
     public void init()
     {
         //IP
-        IP = "127.0.0.1"; // 192.168.4.164
+        IP = "192.168.4.164"; // 192.168.4.164
         port = 993;
 
         computerEP = new IPEndPoint(IPAddress.Parse(IP), port);
