@@ -33,11 +33,12 @@ public class UDPSend : MonoBehaviour
     public void init()
     {
         //IP
-        IP = "127.0.0.1"; // 192.168.4.164
+        IP = "192.168.4.164"; // 192.168.4.164
         port = 993;
 
         computerEP = new IPEndPoint(IPAddress.Parse(IP), port);
         unity_sender = new UdpClient();
+        unity_sender.Connect(computerEP);
     }
 
     public static void newPacket(){
@@ -59,7 +60,7 @@ public class UDPSend : MonoBehaviour
     }
 
     public static void sendPacket(){
-        unity_sender.Send(packet, packet.Length, computerEP);
+        unity_sender.Send(packet, packet.Length);
     }
     
     public void logPacket(string message)

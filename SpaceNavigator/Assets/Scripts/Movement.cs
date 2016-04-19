@@ -17,7 +17,11 @@ public class Movement : MonoBehaviour
     private string[][] controls = {
         new string[] { "Pitch", "Yaw", "Roll" },
         new string[] { "Sway", "Heave", "Surge" } };
-    
+
+    //maximum velocity along local axes
+    private Vector3 MAX_ANG_VEL = new Vector3(Mathf.PI / 3, 4 * Mathf.PI / 9, Mathf.PI / 3);
+    private Vector3 MAX_LIN_VEL = new Vector3(10, 6, 10);
+
     private Rigidbody rb; //applies forces, returns velocities
     private UDPSend udpSend; //sends motion data to comm
     public Text hud; //head-up display of motion info
@@ -47,6 +51,8 @@ public class Movement : MonoBehaviour
         addToLog(Time.time, true);
         applyForces();
         correctOrientation();
+        limitVelocity(Motion.Angular, MAX_ANG_VEL);
+        limitVelocity(Motion.Linear, MAX_LIN_VEL);
         updateVelAcc();
         logsendOutput();
         updateLog();
@@ -69,6 +75,25 @@ public class Movement : MonoBehaviour
         rb.AddTorque(TURN_DELTA * (canMove ? ang : -rb.angularVelocity));
         rb.AddForce(SPEED_DELTA * (canMove ? lin : -rb.velocity));
     }
+
+    // clamps velocity of type m to limit		
+    private void limitVelocity(Motion m, Vector3 limit)
+    {
+        Vector3 v = (m == Motion.Angular) ? rb.angularVelocity : rb.velocity;
+        Vector3 limV = v;
+        limV.x = Mathf.Clamp(v.x, -limit.x, limit.x);
+        limV.y = Mathf.Clamp(v.y, -limit.y, limit.y);
+        limV.z = Mathf.Clamp(v.z, -limit.z, limit.z);
+
+        if (!v.Equals(limV))
+        {
+            if (m == Motion.Angular)
+                rb.angularVelocity = limV;
+            else
+                rb.velocity = limV;
+        }
+    }
+
 
     // translates force vectors (from controls) along local axes to global force vectors
     Vector3 globalize(Vector3[] axes, Motion m)
@@ -151,9 +176,9 @@ public class Movement : MonoBehaviour
     // send ship motion info to comm
     private void logsendOutput()
     {
-        addToLog(linVel.magnitude, true);
-
-        foreach (Vector3 v in new Vector3[] { angVel, linAcc, angAcc, /*rotation*/Vector3.zero })
+        addToLog(10*linVel.magnitude, true);
+        Vector3[] data = { 10 * angVel, 10 * linAcc, 10 * angAcc, transform.rotation.eulerAngles };
+        foreach (Vector3 v in data)
         {
             addToLog(v, true);
         }
