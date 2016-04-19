@@ -4,7 +4,7 @@ using System;
 
 public class Movement : MonoBehaviour
 {
-    
+
     public float TURN_DELTA = 0.1f; //torque applied from controls in rad/sec^2
     public float SPEED_DELTA = 5; //force applied from controls in 1 m/sec^2
     private float MAX_ANG_ACC = Mathf.PI * 400 / 180; //400 deg/sec^2
@@ -49,17 +49,19 @@ public class Movement : MonoBehaviour
     {
         UDPSend.newPacket();
         addToLog(Time.time, true);
+
         applyForces();
         correctOrientation();
         limitVelocity(Motion.Angular, MAX_ANG_VEL);
         limitVelocity(Motion.Linear, MAX_LIN_VEL);
+
         updateVelAcc();
-        logsendOutput();
-        updateLog();
+        sendData();
+        udpSend.logPacket(log);
+        log = "";
     }
 
-    // applies forces from controls to ship
-    // logs controls
+    // logs and applies forces from controls to ship
     private void applyForces()
     {
         bool canMove = addToLog(Input.GetAxis("Brake"), false) != 0;
@@ -75,25 +77,6 @@ public class Movement : MonoBehaviour
         rb.AddTorque(TURN_DELTA * (canMove ? ang : -rb.angularVelocity));
         rb.AddForce(SPEED_DELTA * (canMove ? lin : -rb.velocity));
     }
-
-    // clamps velocity of type m to limit		
-    private void limitVelocity(Motion m, Vector3 limit)
-    {
-        Vector3 v = (m == Motion.Angular) ? rb.angularVelocity : rb.velocity;
-        Vector3 limV = v;
-        limV.x = Mathf.Clamp(v.x, -limit.x, limit.x);
-        limV.y = Mathf.Clamp(v.y, -limit.y, limit.y);
-        limV.z = Mathf.Clamp(v.z, -limit.z, limit.z);
-
-        if (!v.Equals(limV))
-        {
-            if (m == Motion.Angular)
-                rb.angularVelocity = limV;
-            else
-                rb.velocity = limV;
-        }
-    }
-
 
     // translates force vectors (from controls) along local axes to global force vectors
     Vector3 globalize(Vector3[] axes, Motion m)
@@ -116,6 +99,24 @@ public class Movement : MonoBehaviour
             BitConverter.ToSingle(packet, 8),
             BitConverter.ToSingle(packet, 12));
         transform.Rotate(-orientation);
+    }
+
+    // clamps velocity of type m to limit		
+    private void limitVelocity(Motion m, Vector3 limit)
+    {
+        Vector3 v = (m == Motion.Angular) ? rb.angularVelocity : rb.velocity;
+        Vector3 limV = v;
+        limV.x = Mathf.Clamp(v.x, -limit.x, limit.x);
+        limV.y = Mathf.Clamp(v.y, -limit.y, limit.y);
+        limV.z = Mathf.Clamp(v.z, -limit.z, limit.z);
+
+        if (!v.Equals(limV))
+        {
+            if (m == Motion.Angular)
+                rb.angularVelocity = limV;
+            else
+                rb.velocity = limV;
+        }
     }
 
     // updates current velocities and accelerations vars and on GUI
@@ -173,25 +174,18 @@ public class Movement : MonoBehaviour
         return string.Format("{0,6:F2} {1,6:F2} {2,6:F2}", v.x, v.y, v.z);
     }
 
-    // send ship motion info to comm
-    private void logsendOutput()
+    // log and send ship motion info to comm
+    private void sendData()
     {
-        addToLog(10*linVel.magnitude, true);
-        Vector3[] data = { 10 * angVel, 10 * linAcc, 10 * angAcc, transform.rotation.eulerAngles };
-        foreach (Vector3 v in data)
-        {
-            addToLog(v, true);
-        }
+        addToLog(10 * linVel.magnitude, true);
+        addToLog(10 * angVel, true);
+        addToLog(10 * linAcc, true);
+        addToLog(10 * angAcc, true);
+        addToLog(transform.rotation.eulerAngles, true);
         UDPSend.sendPacket();
     }
 
-    // log controller input and ship motion output
-    private void updateLog()
-    {
-        udpSend.logPacket(log);
-        log = "";
-    }
-
+    // adds vector v to log, if udpSend then also adds to udpSend packet
     private Vector3 addToLog(Vector3 v, bool udpSend)
     {
         addToLog(v.x, udpSend);
@@ -200,6 +194,7 @@ public class Movement : MonoBehaviour
         return v;
     }
 
+    // adds float f to log, if udpSend then also adds to udpSend packet
     private float addToLog(float f, bool udpSend)
     {
         log += string.Format(" {0,8:F6}", f);
