@@ -1,35 +1,27 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System;
-using System.Collections;
 
 public class Movement : MonoBehaviour
 {
-
-    //torque applied from controls in rad/sec^2
-    public float TURN_DELTA = 0.1f;
-    //force applied from controls in 1 m/sec^2
-    public float SPEED_DELTA = 5;
+    
+    public float TURN_DELTA = 0.1f; //torque applied from controls in rad/sec^2
+    public float SPEED_DELTA = 5; //force applied from controls in 1 m/sec^2
+    private float MAX_ANG_ACC = Mathf.PI * 400 / 180; //400 deg/sec^2
+    private float MAX_LIN_ACC = 49; //0.5 gravity
 
     //the two types of motion
     private enum Motion { Angular, Linear };
 
+    //the six dof controller input
     private string[][] controls = {
         new string[] { "Pitch", "Yaw", "Roll" },
         new string[] { "Sway", "Heave", "Surge" } };
-
-    //maximum velocity along local axes
-    //private Vector3 MAX_ANG_VEL = new Vector3(Mathf.PI / 3, 4 * Mathf.PI / 9, Mathf.PI / 3);
-    //private Vector3 MAX_LIN_VEL = new Vector3(10, 6, 10);
-
-    //min/max angle of the ship
-    private const float MIN_ANGLE = 200;
-    private const float MAX_ANGLE = 160;
-
-    private string label; //GUI label for position, rotation & ang/lin velocity
+    
     private Rigidbody rb; //applies forces, returns velocities
-    private UDPSend udp; //communication channel
+    private UDPSend udpSend; //sends motion data to comm
     public Text hud; //head-up display of motion info
+    private string log = ""; //next line to be added to log file
 
     //current rotation, velocities & accelerations of ship
     private Vector3 linVel = new Vector3();
@@ -41,51 +33,64 @@ public class Movement : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        udp = FindObjectOfType<UDPSend>();
+        udpSend = FindObjectOfType<UDPSend>();
 
-        //acceleration limits from MOOG
-        TURN_DELTA = Mathf.Min(TURN_DELTA, Mathf.PI * 400 / 180); //400 deg/sec^2
-        SPEED_DELTA = Mathf.Min(SPEED_DELTA, 49); //0.5 G
+        //apply acceleration limits from MOOG
+        TURN_DELTA = Mathf.Min(Mathf.Abs(TURN_DELTA), MAX_ANG_ACC);
+        SPEED_DELTA = Mathf.Min(Mathf.Abs(SPEED_DELTA), MAX_LIN_ACC);
     }
 
     // Update is called once per frame
     void Update()
     {
+        UDPSend.newPacket();
+        addToLog(Time.time, true);
         applyForces();
+        correctOrientation();
         updateVelAcc();
-        sendData();
-        receiveData();
+        logsendOutput();
+        updateLog();
     }
 
     // applies forces from controls to ship
+    // logs controls
     private void applyForces()
     {
-        // joystick button A or keyboard spacebar to brake
-        if (Input.GetKey(KeyCode.Joystick1Button0) || Input.GetKey(KeyCode.Space))
-        {
-            rb.AddTorque(-rb.angularVelocity * TURN_DELTA);
-            rb.AddForce(-rb.velocity * SPEED_DELTA);
-        }
-        else
-        {
-            Vector3 x = transform.right.normalized;
-            Vector3 y = transform.up.normalized;
-            Vector3 z = transform.forward.normalized;
-            Vector3[] axes = { x, y, z };
-            rb.AddTorque(move(axes, Motion.Angular) * TURN_DELTA);
-            rb.AddForce(move(axes, Motion.Linear) * SPEED_DELTA);
-        }
+        bool canMove = addToLog(Input.GetAxis("Brake"), false) != 0;
+
+        Vector3 x = transform.right.normalized;
+        Vector3 y = transform.up.normalized;
+        Vector3 z = transform.forward.normalized;
+        Vector3[] axes = { x, y, z };
+
+        Vector3 ang = globalize(axes, Motion.Angular);
+        Vector3 lin = globalize(axes, Motion.Linear);
+
+        rb.AddTorque(TURN_DELTA * (canMove ? ang : -rb.angularVelocity));
+        rb.AddForce(SPEED_DELTA * (canMove ? lin : -rb.velocity));
     }
 
     // translates force vectors (from controls) along local axes to global force vectors
-    Vector3 move(Vector3[] vectors, Motion m)
+    Vector3 globalize(Vector3[] axes, Motion m)
     {
         Vector3 force = new Vector3();
         for (int i = 0; i < 3; i++)
         {
-            force += vectors[i] * Input.GetAxis(controls[(int)m][i]);
+            force += axes[i] * addToLog(Input.GetAxis(controls[(int)m][i]), false);
         }
         return force;
+    }
+
+    // cancels out MOOG rotations from the camera
+    private void correctOrientation()
+    {
+        byte[] packet = UDPReceive.getMOOGData();
+        float time = BitConverter.ToSingle(packet, 0);
+        Vector3 orientation = new Vector3(
+            BitConverter.ToSingle(packet, 4),
+            BitConverter.ToSingle(packet, 8),
+            BitConverter.ToSingle(packet, 12));
+        transform.Rotate(-orientation);
     }
 
     // updates current velocities and accelerations vars and on GUI
@@ -143,35 +148,37 @@ public class Movement : MonoBehaviour
         return string.Format("{0,6:F2} {1,6:F2} {2,6:F2}", v.x, v.y, v.z);
     }
 
-    // log and send ship motion info to comm
-    private void sendData()
+    // send ship motion info to comm
+    private void logsendOutput()
     {
-        string msg = "";
-        UDPSend.newPacket();
-        msg += string.Format("{0,8:F6}", UDPSend.addFloat(Time.time));
-        msg += string.Format(" {0,8:F6}", UDPSend.addFloat(linVel.magnitude));
+        addToLog(linVel.magnitude, true);
 
         foreach (Vector3 v in new Vector3[] { angVel, linAcc, angAcc, /*rotation*/Vector3.zero })
         {
-            msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.x));
-            msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.y));
-            msg += string.Format(" {0,8:F6}", UDPSend.addFloat(v.z));
+            addToLog(v, true);
         }
-
-        udp.logPacket(msg);
         UDPSend.sendPacket();
     }
 
-    private void receiveData()
+    // log controller input and ship motion output
+    private void updateLog()
     {
-        byte[] data = UDPReceive.getMOOGData();
+        udpSend.logPacket(log);
+        log = "";
+    }
 
-        float time = BitConverter.ToSingle(data, 0);
-        float roll = BitConverter.ToSingle(data, 4);
-        float pitch = BitConverter.ToSingle(data, 8);
-        float yaw = BitConverter.ToSingle(data, 12);
+    private Vector3 addToLog(Vector3 v, bool udpSend)
+    {
+        addToLog(v.x, udpSend);
+        addToLog(v.y, udpSend);
+        addToLog(v.z, udpSend);
+        return v;
+    }
 
-        string msg = "" + time + " " + roll + " " + pitch + " " + yaw;
-        if(time > 0) Debug.Log(msg);
+    private float addToLog(float f, bool udpSend)
+    {
+        log += string.Format(" {0,8:F6}", f);
+        if (udpSend) UDPSend.addFloat(f);
+        return f;
     }
 }
