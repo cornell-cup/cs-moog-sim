@@ -7,6 +7,7 @@ public class Movement : MonoBehaviour
 
     public float TURN_DELTA = 0.1f; //torque applied from controls in rad/sec^2
     public float SPEED_DELTA = 5; //force applied from controls in 1 m/sec^2
+    public float BRAKE_DELTA = 0.05f; //brake decrement
     private float MAX_ANG_ACC = Mathf.PI * 400 / 180; //400 deg/sec^2
     private float MAX_LIN_ACC = 49; //0.5 gravity
 
@@ -19,7 +20,7 @@ public class Movement : MonoBehaviour
         new string[] { "Sway", "Heave", "Surge" } };
 
     //maximum velocity along local axes
-    private Vector3 MAX_ANG_VEL = new Vector3(Mathf.PI / 3, 4 * Mathf.PI / 9, Mathf.PI / 3);
+    private Vector3 MAX_ANG_VEL = new Vector3(Mathf.PI / 6, 2 * Mathf.PI / 9, Mathf.PI / 6);
     private Vector3 MAX_LIN_VEL = new Vector3(10, 6, 10);
 
     private Rigidbody rb; //applies forces, returns velocities
@@ -42,6 +43,15 @@ public class Movement : MonoBehaviour
         //apply acceleration limits from MOOG
         TURN_DELTA = Mathf.Min(Mathf.Abs(TURN_DELTA), MAX_ANG_ACC);
         SPEED_DELTA = Mathf.Min(Mathf.Abs(SPEED_DELTA), MAX_LIN_ACC);
+
+        string header = string.Format(" {0,8} {1,8}", "Time", "Brake");
+        header += string.Format(" {0,8} {1,8} {2,8}", controls[0]);
+        header += string.Format(" {0,8} {1,8} {2,8}", controls[1]);
+        header += string.Format(" {0,8} {1,8} {2,8} {3,8}", "||v||", "v_ang_x", "v_ang_y", "v_ang_z");
+        header += string.Format(" {0,8} {1,8} {2,8}", "a_x", "a_y", "a_z");
+        header += string.Format(" {0,8} {1,8} {2,8}", "a_ang_x", "a_ang_y", "a_ang_z");
+        header += string.Format(" {0,8} {1,8} {2,8}", "rot_x", "rot_y", "rot_z");
+        udpSend.logPacket(header);
     }
 
     // Update is called once per frame
@@ -64,7 +74,7 @@ public class Movement : MonoBehaviour
     // logs and applies forces from controls to ship
     private void applyForces()
     {
-        bool canMove = addToLog(Input.GetAxis("Brake"), false) != 0;
+        bool canMove = addToLog(Input.GetAxis("Brake"), false) == 0;
 
         Vector3 x = transform.right.normalized;
         Vector3 y = transform.up.normalized;
@@ -74,8 +84,17 @@ public class Movement : MonoBehaviour
         Vector3 ang = globalize(axes, Motion.Angular);
         Vector3 lin = globalize(axes, Motion.Linear);
 
-        rb.AddTorque(TURN_DELTA * (canMove ? ang : -rb.angularVelocity));
-        rb.AddForce(SPEED_DELTA * (canMove ? lin : -rb.velocity));
+        if (canMove)
+        {
+            rb.AddTorque(TURN_DELTA * ang);
+            rb.AddForce(SPEED_DELTA * lin);
+        }
+        else
+        {
+            rb.velocity = Vector3.Lerp(rb.velocity, Vector3.zero, BRAKE_DELTA);
+            rb.angularVelocity = Vector3.Slerp(rb.angularVelocity, Vector3.zero, BRAKE_DELTA);
+        }
+
     }
 
     // translates force vectors (from controls) along local axes to global force vectors
@@ -93,12 +112,15 @@ public class Movement : MonoBehaviour
     private void correctOrientation()
     {
         byte[] packet = UDPReceive.getMOOGData();
-        float time = BitConverter.ToSingle(packet, 0);
-        Vector3 orientation = new Vector3(
-            BitConverter.ToSingle(packet, 4),
-            BitConverter.ToSingle(packet, 8),
-            BitConverter.ToSingle(packet, 12));
-        transform.Rotate(-orientation);
+        if (packet != null)
+        {
+            float time = BitConverter.ToSingle(packet, 0);
+            Vector3 orientation = new Vector3(
+                BitConverter.ToSingle(packet, 4),
+                BitConverter.ToSingle(packet, 8),
+                BitConverter.ToSingle(packet, 12));
+            transform.Rotate(-orientation);
+        }
     }
 
     // clamps velocity of type m to limit		
@@ -110,19 +132,15 @@ public class Movement : MonoBehaviour
         limV.y = Mathf.Clamp(v.y, -limit.y, limit.y);
         limV.z = Mathf.Clamp(v.z, -limit.z, limit.z);
 
-        if (!v.Equals(limV))
-        {
-            if (m == Motion.Angular)
-                rb.angularVelocity = limV;
-            else
-                rb.velocity = limV;
-        }
+        if (m == Motion.Angular)
+            rb.angularVelocity = limV;
+        else
+            rb.velocity = limV;
     }
 
     // updates current velocities and accelerations vars and on GUI
     private void updateVelAcc()
     {
-        // TODO replace with rb.GetRelativePointVelocity(seat position from center)
         Vector3 v = localize(rb.velocity);
         Vector3 a = localize(rb.angularVelocity);
 
@@ -152,7 +170,7 @@ public class Movement : MonoBehaviour
             getScalar(v, transform.forward));
     }
 
-    // returns scalar s where s*n is the projection of v onto n
+    // returns scalar s where projection of v onto n = s*n
     private float getScalar(Vector3 v, Vector3 n)
     {
         return Vector3.Dot(Vector3.Project(v, n), n) / Vector3.Dot(n, n);
@@ -171,7 +189,7 @@ public class Movement : MonoBehaviour
     // outputs a fixed length Vector3 toString
     private string fixLen(Vector3 v)
     {
-        return string.Format("{0,6:F2} {1,6:F2} {2,6:F2}", v.x, v.y, v.z);
+        return string.Format("{0,6:F2},{1,6:F2},{2,6:F2}", v.x, v.y, v.z);
     }
 
     // log and send ship motion info to comm
@@ -197,7 +215,7 @@ public class Movement : MonoBehaviour
     // adds float f to log, if udpSend then also adds to udpSend packet
     private float addToLog(float f, bool udpSend)
     {
-        log += string.Format(" {0,8:F6}", f);
+        log += string.Format(" {0,8:F4}", f);
         if (udpSend) UDPSend.addFloat(f);
         return f;
     }
