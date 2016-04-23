@@ -7,7 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
-public class UDPReceive : MonoBehaviour
+public class UDPReceive
 {
     // Address
     private string localIP;
@@ -26,11 +26,11 @@ public class UDPReceive : MonoBehaviour
     // receiving Thread
     private Thread receiveThread;
 
-    public void Start()
+    public UDPReceive(string local, string remote, int p)
     {
-        localIP = "192.168.4.23";
-        remoteIP = "192.168.4.164";
-        port = 994;
+        localIP = local;
+        remoteIP = remote;
+        port = p;
 
         unityEP = new IPEndPoint(IPAddress.Parse(localIP), port);
         computer_sender_EP = new IPEndPoint(IPAddress.Parse(remoteIP), port);
@@ -59,7 +59,7 @@ public class UDPReceive : MonoBehaviour
             }
             catch(Exception err)
             {
-                //print(err.ToString());
+                Debug.Log(err.ToString());
             }            
         }
     }

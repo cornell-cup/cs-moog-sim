@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class ChangeSkyBox : MonoBehaviour {
+public class ChangeSkybox : MonoBehaviour {
 
     public Material[] skyboxes= new Material[1];
     private int sb = 0;
