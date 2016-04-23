@@ -40,9 +40,16 @@ public class Movement : MonoBehaviour
     public GameObject model; //orientation 3d display
     public Image avx, avy, avz, lvx, lvy, lvz; //gui velocity displays
 
+    private Canvas canvas;
+    private MeshRenderer[] axes, ori;
+
     // Use this for initialization
     void Start()
     {
+        canvas = FindObjectOfType<Canvas>();
+        axes = GameObject.Find("axes").GetComponentsInChildren<MeshRenderer>();
+        ori = GameObject.Find("orientation").GetComponentsInChildren<MeshRenderer>();
+
         rb = GetComponent<Rigidbody>();
         udpSend = FindObjectOfType<UDPSend>();
 
@@ -67,6 +74,18 @@ public class Movement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if(Input.GetKeyUp(KeyCode.JoystickButton2))
+        {
+            canvas.enabled = !canvas.enabled;
+            foreach (MeshRenderer mr in axes)
+            {
+                mr.enabled = !mr.enabled;
+            }
+            foreach (MeshRenderer mr in ori)
+            {
+                mr.enabled = !mr.enabled;
+            }
+        }
         if (on_platform)
         {
             UDPSend.newPacket();
@@ -183,12 +202,12 @@ public class Movement : MonoBehaviour
         avy.transform.localRotation = Quaternion.AngleAxis(-av.y, Vector3.forward);
         avz.transform.localRotation = Quaternion.AngleAxis(-av.z, Vector3.forward);
         Debug.Log(linVel);
-        lvx.transform.localScale = new Vector3(1,linVel.x / (2*MAX_LIN_VEL),1);
-        lvx.transform.localPosition = (linVel.x / (4 * MAX_LIN_VEL) * 100 ) * Vector3.up;
-        lvy.transform.localScale = new Vector3(1, -linVel.y / (2*MAX_LIN_VEL), 1);
-        lvy.transform.localPosition = (-linVel.y / (4 * MAX_LIN_VEL) * 100 )* Vector3.up;
-        lvz.transform.localScale = new Vector3(1, linVel.z / (2*MAX_LIN_VEL), 1);
-        lvz.transform.localPosition = (linVel.z / (4 * MAX_LIN_VEL) * 100 )* Vector3.up;
+        lvx.transform.localScale = new Vector3(linVel.x / (2*MAX_LIN_VEL),1,1);
+        lvx.transform.localPosition = (linVel.x / (4 * MAX_LIN_VEL) * 100 ) * Vector3.right;
+        lvy.transform.localScale = new Vector3(-linVel.y / (2*MAX_LIN_VEL),1, 1);
+        lvy.transform.localPosition = (-linVel.y / (4 * MAX_LIN_VEL) * 100 )* Vector3.right;
+        lvz.transform.localScale = new Vector3(linVel.z / (2*MAX_LIN_VEL),1, 1);
+        lvz.transform.localPosition = (linVel.z / (4 * MAX_LIN_VEL) * 100 )* Vector3.right;
     }
 
     // converts vector from radians to degrees and from [0,360) to [-180,180)
