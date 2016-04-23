@@ -4,36 +4,41 @@ using System;
 
 public class Movement : MonoBehaviour
 {
-    public bool debug_log = false; //whether to store input and output into a log file
-    public bool on_platform = true; //whether game is being played on MOOG
     public float TURN_DELTA = 0.1f; //torque applied from controls in rad/sec^2
     public float SPEED_DELTA = 10; //force applied from controls in 1 m/sec^2
     public float BRAKE_DELTA = 0.01f; //brake decrement
-    private float MAX_ANG_ACC = Mathf.PI * 400 / 180; //400 deg/sec^2
-    private float MAX_LIN_ACC = 49; //0.5 gravity
 
     //the two types of motion
     private enum Motion { Angular, Linear };
 
-    //the six dof controller input
+    //the six dof controller inputs
     private string[][] controls = {
         new string[] { "Pitch", "Yaw", "Roll" },
         new string[] { "Sway", "Heave", "Surge" } };
 
-    //maximum velocity along local axes
-    private Vector3 MAX_ANG_VEL = new Vector3(Mathf.PI / 6, 2 * Mathf.PI / 9, Mathf.PI / 6);
-    private Vector3 MAX_LIN_VEL = new Vector3(10, 6, 10);
-
     private Rigidbody rb; //applies forces, returns velocities
-    private UDPSend udpSend; //sends motion data to comm
-    public Text hud; //head-up display of motion info
-    private string log = ""; //next line to be added to log file
+
+    //maximum along local axes
+    private float MAX_ANG_ACC = Mathf.PI * 400 / 180; //400 deg/sec^2
+    private float MAX_LIN_ACC = 49; //0.5 gravity
+    public float MAX_ANG_VEL = Mathf.PI / 6;
+    public float MAX_LIN_VEL = 10;
+    private float SCALE_VEL = 10;
 
     //current rotation, velocities & accelerations of ship
     private Vector3 linVel = new Vector3();
     private Vector3 angVel = new Vector3();
     private Vector3 linAcc, angAcc;
     private Vector3 rotation = new Vector3();
+
+    private UDPSend udpSend; //sends motion data to comm
+    public bool on_platform = true; //whether game is being played on MOOG
+    public bool log = false; //whether to store input and output into a log file
+    private string lf = ""; //next line to be added to log file
+    private Logger logger; //logs to file
+
+    public GameObject model; //orientation 3d display
+    public Image avx, avy, avz, lvx, lvy, lvz; //gui velocity displays
 
     // Use this for initialization
     void Start()
@@ -45,8 +50,9 @@ public class Movement : MonoBehaviour
         TURN_DELTA = Mathf.Min(Mathf.Abs(TURN_DELTA), MAX_ANG_ACC);
         SPEED_DELTA = Mathf.Min(Mathf.Abs(SPEED_DELTA), MAX_LIN_ACC);
 
-        if (debug_log)
+        if (log)
         {
+            logger = new Logger();
             string header = string.Format(" {0,8} {1,8}", "Time", "Brake");
             header += string.Format(" {0,8} {1,8} {2,8}", controls[0]);
             header += string.Format(" {0,8} {1,8} {2,8}", controls[1]);
@@ -54,29 +60,31 @@ public class Movement : MonoBehaviour
             header += string.Format(" {0,8} {1,8} {2,8}", "a_x", "a_y", "a_z");
             header += string.Format(" {0,8} {1,8} {2,8}", "a_ang_x", "a_ang_y", "a_ang_z");
             header += string.Format(" {0,8} {1,8} {2,8}", "rot_x", "rot_y", "rot_z");
-            udpSend.logPacket(header);
+            logger.logPacket(header);
         }
     }
 
     // Update is called once per frame
     void Update()
     {
-        updateGUI();
-        applyForces();
-        limitVelocity(Motion.Angular, MAX_ANG_VEL);
-        limitVelocity(Motion.Linear, MAX_LIN_VEL);
-
         if (on_platform)
         {
             UDPSend.newPacket();
             addToLog(Time.time, true);
+            applyForces();
             correctOrientation();
-            updateVelAcc();
             sendData();
-            udpSend.logPacket(log);
-            log = "";
+        } else
+        {
+            applyForces();
         }
-
+        if (log)
+        {
+            logger.logPacket(lf);
+            lf = "";
+        }
+        updateVelAcc();
+        updateGUI();
     }
 
     // logs and applies forces from controls to ship
@@ -89,13 +97,15 @@ public class Movement : MonoBehaviour
         Vector3 z = transform.forward.normalized;
         Vector3[] axes = { x, y, z };
 
-        Vector3 ang = globalize(axes, Motion.Angular);
         Vector3 lin = globalize(axes, Motion.Linear);
+        Vector3 ang = globalize(axes, Motion.Angular);
 
         if (canMove)
         {
-            rb.AddTorque(TURN_DELTA * ang);
             rb.AddForce(SPEED_DELTA * lin);
+            rb.AddTorque(TURN_DELTA * ang);
+            rb.velocity = Vector3.ClampMagnitude(rb.velocity, MAX_LIN_VEL);
+            rb.angularVelocity = Vector3.ClampMagnitude(rb.angularVelocity, Mathf.PI / 6);
         }
         else
         {
@@ -131,21 +141,6 @@ public class Movement : MonoBehaviour
         }
     }
 
-    // clamps velocity of type m to limit		
-    private void limitVelocity(Motion m, Vector3 limit)
-    {
-        Vector3 v = (m == Motion.Angular) ? rb.angularVelocity : rb.velocity;
-        Vector3 limV = v;
-        limV.x = Mathf.Clamp(v.x, -limit.x, limit.x);
-        limV.y = Mathf.Clamp(v.y, -limit.y, limit.y);
-        limV.z = Mathf.Clamp(v.z, -limit.z, limit.z);
-
-        if (m == Motion.Angular)
-            rb.angularVelocity = limV;
-        else
-            rb.velocity = limV;
-    }
-
     // updates current velocities and accelerations vars and on GUI
     private void updateVelAcc()
     {
@@ -163,16 +158,7 @@ public class Movement : MonoBehaviour
         angVel = a;
         
     }
-
-    // updates gui with positions and velocities
-    private void updateGUI()
-    {
-        hud.text = "pos: " + fixLen(transform.position);
-        hud.text += "\trot: " + fixLen(degModAngle(rotation));
-        hud.text += "\nvel: " + fixLen(linVel);
-        hud.text += "\tvel: " + fixLen(degModAngle(angVel));
-    }
-
+    
     // converts vector from global to local axes
     private Vector3 localize(Vector3 v)
     {
@@ -186,6 +172,23 @@ public class Movement : MonoBehaviour
     private float getScalar(Vector3 v, Vector3 n)
     {
         return Vector3.Dot(Vector3.Project(v, n), n) / Vector3.Dot(n, n);
+    }
+
+    // updates gui with positions and velocities
+    private void updateGUI()
+    {
+        model.transform.localRotation = transform.rotation;
+        Vector3 av = degModAngle(angVel);
+        avx.transform.localRotation = Quaternion.AngleAxis(-av.x, Vector3.forward);
+        avy.transform.localRotation = Quaternion.AngleAxis(-av.y, Vector3.forward);
+        avz.transform.localRotation = Quaternion.AngleAxis(-av.z, Vector3.forward);
+        Debug.Log(linVel);
+        lvx.transform.localScale = new Vector3(1,linVel.x / (2*MAX_LIN_VEL),1);
+        lvx.transform.localPosition = (linVel.x / (4 * MAX_LIN_VEL) * 100 ) * Vector3.up;
+        lvy.transform.localScale = new Vector3(1, -linVel.y / (2*MAX_LIN_VEL), 1);
+        lvy.transform.localPosition = (-linVel.y / (4 * MAX_LIN_VEL) * 100 )* Vector3.up;
+        lvz.transform.localScale = new Vector3(1, linVel.z / (2*MAX_LIN_VEL), 1);
+        lvz.transform.localPosition = (linVel.z / (4 * MAX_LIN_VEL) * 100 )* Vector3.up;
     }
 
     // converts vector from radians to degrees and from [0,360) to [-180,180)
@@ -207,10 +210,10 @@ public class Movement : MonoBehaviour
     // log and send ship motion info to comm
     private void sendData()
     {
-        addToLog(10 * linVel.magnitude, true);
-        addToLog(10 * angVel, true);
-        addToLog(10 * linAcc, true);
-        addToLog(10 * angAcc, true);
+        addToLog(SCALE_VEL * linVel.magnitude, true);
+        addToLog(SCALE_VEL * angVel, true);
+        addToLog(SCALE_VEL * linAcc, true);
+        addToLog(SCALE_VEL * angAcc, true);
         addToLog(transform.rotation.eulerAngles, true);
         UDPSend.sendPacket();
     }
@@ -227,9 +230,9 @@ public class Movement : MonoBehaviour
     // adds float f to log, if udpSend then also adds to udpSend packet
     private float addToLog(float f, bool udpSend)
     {
-        if (debug_log)
+        if (log)
         {
-            log += string.Format(" {0,8:F4}", f);
+            lf += string.Format(" {0,8:F4}", f);
             if (udpSend) UDPSend.addFloat(f);
         }
         return f;

@@ -3,8 +3,8 @@ using System.Collections;
 
 public class ChangeSkyBox : MonoBehaviour {
 
-    public Material[] skyboxes= new Material[6];
-    private int sb = 2;
+    public Material[] skyboxes= new Material[1];
+    private int sb = 0;
 
     // Update is called once per frame
     void Update()

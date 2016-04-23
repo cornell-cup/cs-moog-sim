@@ -20,20 +20,17 @@ public class UDPSend : MonoBehaviour
 
     private static byte[] packet;
 
-    private string log_filename = "log_"+DateTime.Now.ToFileTime();
-
+    
     // Use this for initialization
     public void Start()
     {
-        System.IO.StreamWriter clearLog = new System.IO.StreamWriter(log_filename + ".txt", false);
-        clearLog.Dispose();
         init();
     }
 
     public void init()
     {
         //IP
-        IP = "192.168.4.164"; // 192.168.4.164
+        IP = "192.168.4.164";
         port = 993;
 
         computerEP = new IPEndPoint(IPAddress.Parse(IP), port);
@@ -61,20 +58,5 @@ public class UDPSend : MonoBehaviour
 
     public static void sendPacket(){
         unity_sender.Send(packet, packet.Length);
-    }
-    
-    public void logPacket(string message)
-    {
-        try
-        {
-            using (System.IO.StreamWriter sw = new System.IO.StreamWriter(log_filename + ".txt", true))
-            {
-                sw.WriteLine(message);
-            }
-        }
-        catch(Exception e)
-        {
-            print(e.Message);
-        }
     }
 }
