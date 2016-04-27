@@ -8,28 +8,57 @@ public class CamDisplay : MonoBehaviour
     public Image[] ang = new Image[3];
     public Image[] lin = new Image[3];
 
-    private Canvas canvas;
+    private Image panel;
+    private Text instructions;
     private MeshRenderer[] axesMesh, oriMesh;
+    private AudioSource music;
+    private bool paused = true;
 
     // Use this for initialization
     void Start()
     {
-        canvas = FindObjectOfType<Canvas>();
+        Time.timeScale = 0;
+        panel = GameObject.Find("Panel").GetComponent<Image>();
         orientation = GameObject.Find("orientation");
         oriMesh = orientation.GetComponentsInChildren<MeshRenderer>();
         axesMesh = GameObject.Find("axes").GetComponentsInChildren<MeshRenderer>();
+        instructions = GameObject.Find("Instructions").GetComponent<Text>();
+        music = GameObject.Find("Music").GetComponent<AudioSource>();
+        music.volume = 0.1f;
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyUp(KeyCode.JoystickButton2) || Input.GetKeyUp(KeyCode.G))
+        if (Input.GetKeyUp(KeyCode.JoystickButton1) || Input.GetKeyUp(KeyCode.G))
         {
-            canvas.enabled = !canvas.enabled;
             foreach (MeshRenderer mr in axesMesh)
+            {
                 mr.enabled = !mr.enabled;
+            }
             foreach (MeshRenderer mr in oriMesh)
+            {
                 mr.enabled = !mr.enabled;
+            }
+            panel.enabled = !panel.enabled;
+            foreach (CanvasRenderer cr in panel.GetComponentsInChildren<CanvasRenderer>())
+            {
+                cr.SetAlpha(cr.GetAlpha() == 0 ? 1 : 0);
+            }
+        }
+        if (Input.GetKeyUp(KeyCode.JoystickButton2) || Input.GetKeyUp(KeyCode.P))
+        {
+            paused = !paused;
+            instructions.enabled = paused;
+            if (paused)
+            {
+                music.volume = 0.1f;
+                Time.timeScale = 0;
+            } else
+            {
+                music.volume = 1;
+                Time.timeScale = 1;
+            }
         }
     }
 
@@ -37,6 +66,7 @@ public class CamDisplay : MonoBehaviour
     {
         orientation.transform.localRotation = transform.rotation;
         Vector3 av = degModAngle(angVel);
+        av = new Vector3(av.x, -av.y, av.x);
         for (int i = 0; i < 3; i++)
         {
             ang[i].transform.localRotation = Quaternion.AngleAxis(av[i], Vector3.forward);

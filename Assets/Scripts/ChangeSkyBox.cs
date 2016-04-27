@@ -9,15 +9,13 @@ public class ChangeSkybox : MonoBehaviour {
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyUp(KeyCode.JoystickButton0) || Input.GetKeyUp(KeyCode.Minus))
-            change(false);
-        else if (Input.GetKeyUp(KeyCode.JoystickButton1) || Input.GetKeyUp(KeyCode.Equals))
-            change(true);
+        if (Input.GetKeyUp(KeyCode.JoystickButton0) || Input.GetKeyUp(KeyCode.Equals))
+            change();
     }
 
-	void change(bool increase)
+	void change()
     {
-        sb = (sb + skyboxes.Length + (increase ? 1 : -1)) % skyboxes.Length;
+        sb = (sb + 1) % skyboxes.Length;
         Debug.Log(sb);
         RenderSettings.skybox = skyboxes[sb];
     }
