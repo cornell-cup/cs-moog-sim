@@ -9,7 +9,6 @@ public class CommMOOG : MonoBehaviour
     public int sendPort = 993;
     private UDPSend udpSend;
     private UDPReceive udpReceive;
-    private Movement movement;
     private float scale = 10;
 
     // Use this for initialization
@@ -17,7 +16,6 @@ public class CommMOOG : MonoBehaviour
     {
         udpSend = new UDPSend(remoteIP, sendPort);
         udpReceive = new UDPReceive(localIP, remoteIP, receivePort);
-        movement = FindObjectOfType<Movement>();
     }
 
     // Update is called once per frame
@@ -47,10 +45,10 @@ public class CommMOOG : MonoBehaviour
     {
         UDPSend.newPacket();
         UDPSend.addFloat(Time.time);
-        UDPSend.addFloat(scale * movement.getLinVel().magnitude);
-        UDPSend.addVector(scale * movement.getAngVel());
-        UDPSend.addVector(scale * movement.getLinAcc());
-        UDPSend.addVector(scale * movement.getAngAcc());
+        UDPSend.addFloat(scale * Movement.instance.getLinVel().magnitude);
+        UDPSend.addVector(scale * Movement.instance.getAngVel());
+        UDPSend.addVector(scale * Movement.instance.getLinAcc());
+        UDPSend.addVector(scale * Movement.instance.getAngAcc());
         UDPSend.addVector(transform.rotation.eulerAngles);
         UDPSend.sendPacket();
     }

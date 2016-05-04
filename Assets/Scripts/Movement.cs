@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 public class Movement : MonoBehaviour
 {
-
+    public static Movement instance;
     public float TURN_DELTA = 0.1f; //torque applied from controls in rad/sec^2
     public float SPEED_DELTA = 5; //force applied from controls in 1 m/sec^2
     public float BRAKE_DELTA = 0.01f; //brake decrement
@@ -34,6 +34,7 @@ public class Movement : MonoBehaviour
     // Use this for initialization
     void Start()
     {
+        instance = this;
         rb = GetComponent<Rigidbody>();
         cam = FindObjectOfType<CamDisplay>();
 
