@@ -106,12 +106,6 @@ public class Movement : MonoBehaviour
             Input.GetAxis(controls[(int)m][2]));
     }
 
-    // returns scalar s where projection of v onto n = s*n
-    private float getScalar(Vector3 v, Vector3 n)
-    {
-        return Vector3.Dot(Vector3.Project(v, n), n) / Vector3.Dot(n, n);
-    }
-
     public Vector3 getLinVel()
     {
         return linVel;
