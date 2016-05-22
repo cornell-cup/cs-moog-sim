@@ -72,13 +72,8 @@ public class Movement : MonoBehaviour
         }
         if(canMove)
         {
-            Vector3 x = transform.right.normalized;
-            Vector3 y = transform.up.normalized;
-            Vector3 z = transform.forward.normalized;
-            Vector3[] axes = { x, y, z };
-
-            rb.AddForce(SPEED_DELTA * globalize(axes, Motion.Linear));
-            rb.AddTorque(TURN_DELTA * globalize(axes, Motion.Angular));
+            rb.AddRelativeForce(SPEED_DELTA * getInput(Motion.Linear));
+            rb.AddRelativeTorque(TURN_DELTA * getInput(Motion.Angular));
             rb.velocity = Vector3.ClampMagnitude(rb.velocity, MAX_LIN_VEL);
             rb.angularVelocity = Vector3.ClampMagnitude(rb.angularVelocity, Mathf.PI / 6);
         }
@@ -87,8 +82,8 @@ public class Movement : MonoBehaviour
     // updates the velocity and acceleration variables
     private void updateVelAcc()
     {
-        Vector3 v = localize(rb.velocity, transform);
-        Vector3 a = localize(rb.angularVelocity, transform);
+        Vector3 v = transform.InverseTransformDirection(rb.velocity);
+        Vector3 a = transform.InverseTransformDirection(rb.angularVelocity);
         cam.updateLin(v);
         cam.updateAng(a);
 
@@ -103,23 +98,12 @@ public class Movement : MonoBehaviour
     }
 
     // translates force vectors (from controls) along local axes to global force vectors
-    Vector3 globalize(Vector3[] axes, Motion m)
-    {
-        Vector3 force = new Vector3();
-        for (int i = 0; i < 3; i++)
-        {
-            force += axes[i] * Input.GetAxis(controls[(int)m][i]);
-        }
-        return force;
-    }
-
-    // converts vector from global to local axes
-    private Vector3 localize(Vector3 v, Transform transform)
+    Vector3 getInput(Motion m)
     {
         return new Vector3(
-            getScalar(v, transform.right),
-            getScalar(v, transform.up),
-            getScalar(v, transform.forward));
+            Input.GetAxis(controls[(int)m][0]), 
+            Input.GetAxis(controls[(int)m][1]), 
+            Input.GetAxis(controls[(int)m][2]));
     }
 
     // returns scalar s where projection of v onto n = s*n
