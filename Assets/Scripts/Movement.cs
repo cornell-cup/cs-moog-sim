@@ -79,8 +79,8 @@ public class Movement : MonoBehaviour
 
             rb.AddForce(SPEED_DELTA * globalize(axes, Motion.Linear));
             rb.AddTorque(TURN_DELTA * globalize(axes, Motion.Angular));
-            rb.velocity = Vector3.ClampMagnitude(rb.velocity, MAX_LIN_VEL);
-            rb.angularVelocity = Vector3.ClampMagnitude(rb.angularVelocity, Mathf.PI / 6);
+            //rb.velocity = Vector3.ClampMagnitude(rb.velocity, MAX_LIN_VEL);
+            //rb.angularVelocity = Vector3.ClampMagnitude(rb.angularVelocity, Mathf.PI / 6);
         }
     }
 

@@ -3,13 +3,13 @@ using System;
 
 public class CommMOOG : MonoBehaviour
 {
-    public string localIP = "192.168.4.23";
-    public string remoteIP = "192.168.4.164";
+    public string localIP = "127.0.0.1";
+    public string remoteIP = "127.0.0.1";
     public int receivePort = 994;
     public int sendPort = 993;
     private UDPSend udpSend;
     private UDPReceive udpReceive;
-    private float scale = 10;
+    private float scale = 20;
 
     // Use this for initialization
     void Start()
